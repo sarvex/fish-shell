@@ -13,7 +13,7 @@ expect_prompt()
 sendline("function echo_wrap ; /bin/echo $argv ; sleep 0.1; end")
 expect_prompt()
 
-for i in range(5):
+for _ in range(5):
     sendline(
         "echo_wrap 1 2 3 4 | $fish_test_helper become_foreground_then_print_stderr ; or exit 1"
     )
@@ -25,7 +25,7 @@ expect_prompt("jobs: There are no jobs")
 
 sendline("function inner ; command true ; end; function outer; inner; end")
 expect_prompt()
-for i in range(5):
+for _ in range(5):
     sendline(
         "outer | $fish_test_helper become_foreground_then_print_stderr ; or exit 1"
     )

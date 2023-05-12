@@ -18,7 +18,7 @@ send, sendline, expect_prompt, expect_str, sleep = (
 # Launch fish_test_helper.
 expect_prompt()
 exe_path = os.environ.get("fish_test_helper")
-sendline(exe_path + " stdin_make_nonblocking")
+sendline(f"{exe_path} stdin_make_nonblocking")
 
 expect_str("stdin was blocking")
 sleep(0.1)
@@ -34,7 +34,7 @@ expect_str("stdin was blocking")
 # Kill the job and do it again.
 send("\x03")  # ctrl-c
 expect_prompt()
-sendline(exe_path + " stdin_make_nonblocking")
+sendline(f"{exe_path} stdin_make_nonblocking")
 expect_str("stdin was blocking")
 send("\x03")  # ctrl-c
 expect_prompt()

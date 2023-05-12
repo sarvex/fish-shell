@@ -105,10 +105,7 @@ def esc(m):
     }
     if m in map:
         return map[m]
-    if unicodedata.category(m)[0] == "C":
-        return "\\x{:02x}".format(ord(m))
-    else:
-        return m
+    return "\\x{:02x}".format(ord(m)) if unicodedata.category(m)[0] == "C" else m
 
 
 def escape_string(s):
@@ -262,38 +259,32 @@ class TestFailure(object):
                 self.error_annotation_lines[0].number
             )
             if len(self.error_annotation_lines) > 1:
-                fields["error_annotation_lineno"] += ":" + str(
-                    self.error_annotation_lines[-1].number
-                )
+                fields[
+                    "error_annotation_lineno"
+                ] += f":{str(self.error_annotation_lines[-1].number)}"
             fmtstrs += [
                 "  additional output on stderr:{error_annotation_lineno}:",
                 "    {BOLD}{error_annotation}{RESET}",
             ]
         if self.diff:
             fmtstrs += ["  Context:"]
-            lasthi = 0
             lastcheckline = None
+            lasthi = 0
             for d in self.diff.get_grouped_opcodes():
                 for op, alo, ahi, blo, bhi in d:
                     color = "{BOLD}"
-                    if op == "replace" or op == "delete":
+                    if op in ["replace", "delete"]:
                         color = "{RED}"
                     # We got a new chunk, so we print a marker.
                     if alo > lasthi:
                         fmtstrs += [
-                            "    [...] from line "
-                            + str(self.checks[blo].line.number)
-                            + " ("
-                            + self.lines[alo].file
-                            + ":"
-                            + str(self.lines[alo].number)
-                            + "):"
+                            f"    [...] from line {str(self.checks[blo].line.number)} ({self.lines[alo].file}:{str(self.lines[alo].number)}):"
                         ]
                     lasthi = ahi
 
                     # We print one "no more checks" after the last check and then skip any markers
                     lastcheck = False
-                    for a, b in zip_longest(self.lines[alo:ahi], self.checks[blo:bhi]):
+                    for a, b in zip_longest(self.lines[alo:lasthi], self.checks[blo:bhi]):
                         # Clean up strings for use in a format string - double up the curlies.
                         astr = (
                             color + a.escaped_text(for_formatting=True) + "{RESET}"
@@ -302,8 +293,7 @@ class TestFailure(object):
                         )
                         if b:
                             bstr = (
-                                "on line "
-                                + str(b.line.number)
+                                f"on line {str(b.line.number)}"
                                 + ": {BLUE}"
                                 + b.line.escaped_text(for_formatting=True)
                                 + "{RESET}"
@@ -311,36 +301,19 @@ class TestFailure(object):
                             lastcheckline = b.line.number
 
                         if op == "equal":
-                            fmtstrs += ["    " + astr]
+                            fmtstrs += [f"    {astr}"]
                         elif b and a:
-                            fmtstrs += [
-                                "    "
-                                + astr
-                                + " <= does not match "
-                                + b.type
-                                + " "
-                                + bstr
-                            ]
+                            fmtstrs += [f"    {astr} <= does not match {b.type} {bstr}"]
                         elif b:
-                            fmtstrs += [
-                                "    "
-                                + astr
-                                + " <= nothing to match "
-                                + b.type
-                                + " "
-                                + bstr
-                            ]
-                        elif not b:
-                            string = "    " + astr
+                            fmtstrs += [f"    {astr} <= nothing to match {b.type} {bstr}"]
+                        else:
+                            string = f"    {astr}"
                             if bhi == len(self.checks):
                                 if not lastcheck:
                                     string += " <= no more checks"
                                     lastcheck = True
                             elif lastcheckline is not None:
-                                string += (
-                                    " <= no check matches this, previous check on line "
-                                    + str(lastcheckline)
-                                )
+                                string += f" <= no check matches this, previous check on line {str(lastcheckline)}"
                             else:
                                 string += " <= no check matches"
                             fmtstrs.append(string)
@@ -378,7 +351,7 @@ def perform_substitution(input_str, subs):
 def runproc(cmd):
     """ Wrapper around subprocess.Popen to save typing """
     PIPE = subprocess.PIPE
-    proc = subprocess.Popen(
+    return subprocess.Popen(
         cmd,
         stdin=PIPE,
         stdout=PIPE,
@@ -386,7 +359,6 @@ def runproc(cmd):
         shell=True,
         close_fds=True,  # For Python 2.6 as shipped on RHEL 6
     )
-    return proc
 
 
 class TestRun(object):
@@ -408,21 +380,16 @@ class TestRun(object):
         while lineq and checkq:
             line = lineq[-1]
             check = checkq[-1]
+            lineq.pop()
             if check == line:
                 # This line matched this checker, continue on.
                 usedlines.append(line)
                 usedchecks.append(check)
-                lineq.pop()
                 checkq.pop()
-            elif line.is_empty_space():
-                # Skip all whitespace input lines.
-                lineq.pop()
-            else:
+            elif not line.is_empty_space():
                 usedlines.append(line)
                 usedchecks.append(check)
                 mismatches.append((line, check))
-                # Failed to match.
-                lineq.pop()
                 checkq.pop()
 
         # Drain empties
@@ -430,13 +397,9 @@ class TestRun(object):
             lineq.pop()
 
         # Store the remaining lines for the diff
-        for i in lineq[::-1]:
-            if not i.is_empty_space():
-                usedlines.append(i)
+        usedlines.extend(i for i in lineq[::-1] if not i.is_empty_space())
         # Store remaining checks for the diff
-        for i in checkq[::-1]:
-            usedchecks.append(i)
-
+        usedchecks.extend(iter(checkq[::-1]))
         # If we have no more output, there's no reason to give
         # SCREENFULS of text.
         # So we truncate the check list.
@@ -488,9 +451,9 @@ class TestRun(object):
         status = proc.returncode
         cmd = shlex.split(self.subbed_command)[0]
         if status == 127 and not find_command(cmd):
-            raise CheckerError("Command could not be found: " + cmd)
+            raise CheckerError(f"Command could not be found: {cmd}")
         if status == 126 and not find_command(cmd):
-            raise CheckerError("Command is not executable: " + cmd)
+            raise CheckerError(f"Command is not executable: {cmd}")
 
         outlines = [
             Line(text, idx + 1, "stdout")
@@ -522,7 +485,7 @@ class TestRun(object):
             if hasattr(signal, "Signals"):
                 try:
                     sig = signal.Signals(-status)
-                    failure.signal = sig.name + " (" + signal.strsignal(sig.value) + ")"
+                    failure.signal = f"{sig.name} ({signal.strsignal(sig.value)})"
                 except ValueError:
                     failure.signal = str(-status)
             else:
@@ -599,14 +562,14 @@ class CheckCmd(object):
                 try:
                     re.compile(piece)
                 except re.error:
-                    raise CheckerError("Invalid regular expression: '%s'" % piece, line)
+                    raise CheckerError(f"Invalid regular expression: '{piece}'", line)
                 re_strings.append(piece)
             even = not even
         # Enclose each piece in a non-capturing group.
         # This ensures that lower-precedence operators don't trip up catenation.
         # For example: {{b|c}}d would result in /b|cd/ which is different.
         # Backreferences are assumed to match across the entire string.
-        re_strings = ["(?:%s)" % s for s in re_strings]
+        re_strings = [f"(?:{s})" for s in re_strings]
         # Anchor at beginning and end (allowing arbitrary whitespace), and maybe
         # a terminating newline.
         # We need the anchors because Python's match() matches an arbitrary prefix,
@@ -635,7 +598,7 @@ class Checker(object):
                 # Remove the "#!" at the beginning, and the newline at the end.
                 cmd = lines[0].text[2:-1]
                 self.shebang_cmd = cmd
-                self.runcmds = [RunCmd(cmd + " %s", lines[0])]
+                self.runcmds = [RunCmd(f"{cmd} %s", lines[0])]
             else:
                 raise CheckerError("No runlines ('# RUN') found")
 
@@ -667,12 +630,11 @@ def check_file(input_file, name, subs, config, failure_handler):
             return SKIP
 
     if checker.shebang_cmd is not None and not find_command(checker.shebang_cmd):
-        raise CheckerError("Command could not be found: " + checker.shebang_cmd)
+        raise CheckerError(f"Command could not be found: {checker.shebang_cmd}")
 
     # Only then run the RUN lines.
     for runcmd in checker.runcmds:
-        failure = TestRun(name, runcmd, checker, subs, config).run()
-        if failure:
+        if failure := TestRun(name, runcmd, checker, subs, config).run():
             failure_handler(failure)
             success = False
     return success
@@ -692,14 +654,14 @@ def parse_subs(subs):
         try:
             key, val = sub.split("=", 1)
             if not key:
-                print("Invalid substitution %s: empty key" % sub)
+                print(f"Invalid substitution {sub}: empty key")
                 sys.exit(1)
             if not val:
-                print("Invalid substitution %s: empty value" % sub)
+                print(f"Invalid substitution {sub}: empty value")
                 sys.exit(1)
             result[key] = val
         except ValueError:
-            print("Invalid substitution %s: equal sign not found" % sub)
+            print(f"Invalid substitution {sub}: equal sign not found")
             sys.exit(1)
     return result
 
@@ -740,7 +702,7 @@ def main():
     args = get_argparse().parse_args()
     # Default substitution is %% -> %
     def_subs = {"%": "%"}
-    def_subs.update(parse_subs(args.substitute))
+    def_subs |= parse_subs(args.substitute)
 
     tests_count = 0
     failed = False

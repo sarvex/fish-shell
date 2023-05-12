@@ -30,4 +30,4 @@ with tempfile.NamedTemporaryFile(mode="r", encoding="utf8") as tf:
                 **colors
             )
         )
-        print("""Expected '{}', found '{}'""".format(fish_pid, line))
+        print(f"""Expected '{fish_pid}', found '{line}'""")

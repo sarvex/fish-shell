@@ -40,7 +40,7 @@ for name, sizes in sizes_by_name.items():
         continue
     # Multiple sizes for this symbol name.
     odr_violations += 1
-    print("Multiple sizes for symbol: " + name)
+    print(f"Multiple sizes for symbol: {name}")
     print("\t%s" % ", ".join([str(x) for x in sizes]))
     print("\tFound in files:")
     for filename in files:

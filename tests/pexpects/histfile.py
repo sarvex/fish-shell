@@ -21,7 +21,7 @@ env_histfile = "../test/data/fish/env_history"
 
 
 def grephistfile(line, file):
-    sendline("grep '^" + line + "' " + file)
+    sendline(f"grep '^{line}' {file}")
 
 
 # Verify that if we spawn fish with no fish_history env var it uses the
@@ -30,7 +30,7 @@ expect_prompt
 
 # Verify that a command is recorded in the default history file.
 cmd1 = "echo $fish_pid default histfile"
-hist_line = "- cmd: " + cmd1
+hist_line = f"- cmd: {cmd1}"
 sendline(cmd1)
 expect_prompt()
 
@@ -46,7 +46,7 @@ expect_prompt()
 # Switch to a new history file and verify it is written to and the default
 # history file is not written to.
 cmd2 = "echo $fish_pid my histfile"
-hist_line = "- cmd: " + cmd2
+hist_line = f"- cmd: {cmd2}"
 sendline("set fish_history my")
 expect_prompt()
 sendline(cmd2)
@@ -63,7 +63,7 @@ expect_prompt()
 
 # Switch back to the default history file.
 cmd3 = "echo $fish_pid default histfile again"
-hist_line = "- cmd: " + cmd3
+hist_line = f"- cmd: {cmd3}"
 sendline("set fish_history default")
 expect_prompt()
 sendline(cmd3)
@@ -80,7 +80,7 @@ expect_prompt()
 
 # We expect this grep to fail to find the pattern and thus the expect_prompt
 # block is inverted.
-sendline("grep '^" + hist_line + "' " + my_histfile)
+sendline(f"grep '^{hist_line}' {my_histfile}")
 grephistfile(hist_line, my_histfile)
 expect_prompt()
 
@@ -106,7 +106,7 @@ expect_prompt()
 
 # Verify that the new fish shell is using the fish_history value for history.
 cmd4 = "echo $fish_pid env histfile"
-hist_line = "- cmd: " + cmd4
+hist_line = f"- cmd: {cmd4}"
 sendline(cmd4)
 expect_prompt()
 

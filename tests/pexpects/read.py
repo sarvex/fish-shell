@@ -21,7 +21,7 @@ def expect_marker(text):
 
 
 def print_var_contents(varname, expected):
-    sendline("echo $" + varname)
+    sendline(f"echo ${varname}")
     expect_prompt(expected)
 
 

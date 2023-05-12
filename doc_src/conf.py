@@ -25,7 +25,7 @@ def issue_role(name, rawtext, text, lineno, inliner, options=None, content=None)
         if issue_num <= 0:
             raise ValueError
     except ValueError:
-        msg = inliner.reporter.error('Invalid issue number: "%s"' % text, line=lineno)
+        msg = inliner.reporter.error(f'Invalid issue number: "{text}"', line=lineno)
         prb = inliner.problematic(rawtext, rawtext, msg)
         return [prb], [msg]
     template = issue_url + "/{n}"
@@ -165,13 +165,13 @@ def get_command_description(path, name):
     """Return the description for a command, by parsing its synopsis line"""
     with open(path) as opened:
         for line in opened:
-            if line.startswith(name + " - "):
+            if line.startswith(f"{name} - "):
                 _, desc = line.split(" - ", 1)
                 return desc.strip()
-            elif line.startswith("``" + name + "`` - "):
+            elif line.startswith(f"``{name}`` - "):
                 _, desc = line.split("`` - ", 1)
                 return desc.strip("`")
-    raise SphinxWarning("No description in file %s" % os.path.basename(path))
+    raise SphinxWarning(f"No description in file {os.path.basename(path)}")
 
 
 # Newer sphinxen apparently create another subdirectory which breaks our man lookup.

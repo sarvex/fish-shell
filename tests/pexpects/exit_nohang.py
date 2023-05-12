@@ -27,7 +27,7 @@ fish_pid = sp.spawn.pid
 # Launch fish_test_helper.
 expect_prompt()
 exe_path = os.environ.get("fish_test_helper")
-sp.sendline(exe_path + " nohup_wait")
+sp.sendline(f"{exe_path} nohup_wait")
 
 # We expect it to transfer tty ownership to fish_test_helper.
 sleep(0.1)

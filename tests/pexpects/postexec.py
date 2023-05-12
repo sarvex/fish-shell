@@ -12,11 +12,9 @@ sendline(
 )
 expect_prompt()
 
-generation = 1
-
 # fish_postexec is called when foreground job ends.
 sendline("true")
-generation += 1
+generation = 1 + 1
 expect_str("pipestatus:0, generation:%d, command:true" % generation)
 expect_prompt()
 

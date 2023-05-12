@@ -93,11 +93,10 @@ class FishSynopsisLexer(Lexer):
             if has_continuation_line:
                 # Traditional case: rules with continuation lines only have a single command.
                 self.is_before_command_token = False
-            else:
-                if m.group() in ("\n", ";") or token_kind is Operator:
-                    self.is_before_command_token = True
-                elif token_kind in (Name.Constant, Name.Function):
-                    self.is_before_command_token = False
+            elif m.group() in ("\n", ";") or token_kind is Operator:
+                self.is_before_command_token = True
+            elif token_kind in (Name.Constant, Name.Function):
+                self.is_before_command_token = False
 
             return m, token_kind, m.end()
         return None, None, offset
@@ -152,7 +151,5 @@ class FishSynopsisLexer(Lexer):
                     break
                 text = match.group()
                 result.append((match.start(), token_kind, text))
-            assert offset == len(rule), "cannot tokenize leftover text: '{}'".format(
-                rule[offset:]
-            )
+            assert offset == len(rule), f"cannot tokenize leftover text: '{rule[offset:]}'"
         return result

@@ -24,27 +24,27 @@ expect_prompt()
 sendline("set fish_cursor_selection_mode inclusive")
 
 # at the beginning of the line
-sendline("echo" + home + select + dump)
+sendline(f"echo{home}{select}{dump}")
 expect_str("<e>")
-sendline("echo" + home + select + right + dump)
+sendline(f"echo{home}{select}{right}{dump}")
 expect_str("<ec>")
-sendline("echo" + home + right + select + left + dump)
+sendline(f"echo{home}{right}{select}{left}{dump}")
 expect_str("<ec>")
 
 # in the middle of the line
-sendline("echo" + home + right + select + dump)
+sendline(f"echo{home}{right}{select}{dump}")
 expect_str("<c>")
-sendline("echo" + home + right + select + right + dump)
+sendline(f"echo{home}{right}{select}{right}{dump}")
 expect_str("<ch>")
-sendline("echo" + home + right + right + select + left + dump)
+sendline(f"echo{home}{right}{right}{select}{left}{dump}")
 expect_str("<ch>")
 
 # at the end of the line
-sendline("echo" + end + select + dump)
+sendline(f"echo{end}{select}{dump}")
 expect_str("<>")
-sendline("echo" + end + select + left + dump)
+sendline(f"echo{end}{select}{left}{dump}")
 expect_str("<o>")
-sendline("echo" + end + left + select + right + dump)
+sendline(f"echo{end}{left}{select}{right}{dump}")
 expect_str("<o>")
 
 # Test exclusive mode
@@ -52,27 +52,27 @@ expect_str("<o>")
 sendline("set fish_cursor_selection_mode exclusive")
 
 # at the beginning of the line
-sendline("echo" + home + select + dump)
+sendline(f"echo{home}{select}{dump}")
 expect_str("<>")
-sendline("echo" + home + select + right + dump)
+sendline(f"echo{home}{select}{right}{dump}")
 expect_str("<e>")
-sendline("echo" + home + right + select + left + dump)
+sendline(f"echo{home}{right}{select}{left}{dump}")
 expect_str("<e>")
 
 # in the middle of the line
-sendline("echo" + home + right + select + dump)
+sendline(f"echo{home}{right}{select}{dump}")
 expect_str("<>")
-sendline("echo" + home + right + select + right + dump)
+sendline(f"echo{home}{right}{select}{right}{dump}")
 expect_str("<c>")
-sendline("echo" + home + right + right + select + left + dump)
+sendline(f"echo{home}{right}{right}{select}{left}{dump}")
 expect_str("<c>")
 
 # at the end of the line
-sendline("echo" + end + select + dump)
+sendline(f"echo{end}{select}{dump}")
 expect_str("<>")
-sendline("echo" + end + select + left + dump)
+sendline(f"echo{end}{select}{left}{dump}")
 expect_str("<o>")
-sendline("echo" + end + left + select + right + dump)
+sendline(f"echo{end}{left}{select}{right}{dump}")
 expect_str("<o>")
 
 # Test default setting.
@@ -80,10 +80,10 @@ expect_str("<o>")
 
 # without a configured selection mode
 sendline("set -u fish_cursor_selection_mode")
-sendline("echo" + home + right + select + right + dump)
+sendline(f"echo{home}{right}{select}{right}{dump}")
 expect_str("<c>")
 
 # with an unknown setting
 sendline("set fish_cursor_selection_mode unknown")
-sendline("echo" + home + right + select + right + dump)
+sendline(f"echo{home}{right}{select}{right}{dump}")
 expect_str("<c>")

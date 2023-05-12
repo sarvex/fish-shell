@@ -149,7 +149,7 @@ class SpawnedProc(object):
             env: a string->string dictionary, describing the environment variables.
         """
         if name not in env:
-            raise ValueError("'%s' variable not found in environment" % name)
+            raise ValueError(f"'{name}' variable not found in environment")
         exe_path = env.get(name)
         self.colorize = sys.stdout.isatty() or env.get("FISH_FORCE_COLOR", "0") == "1"
         self.messages = []

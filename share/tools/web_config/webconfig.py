@@ -123,7 +123,7 @@ def run_fish_cmd(text):
         env = os.environ.copy()
         env.update(LC_CTYPE="en_US.UTF-8", LANG="en_US.UTF-8")
 
-    print("$ " + text)
+    print(f"$ {text}")
     p = subprocess.Popen(
         [FISH_BIN_PATH],
         stdin=subprocess.PIPE,
@@ -140,7 +140,7 @@ def run_fish_cmd(text):
 def escape_fish_cmd(text):
     # Replace one backslash with two, and single quotes with backslash-quote
     escaped = text.replace("\\", "\\\\").replace("'", "\\'")
-    return "'" + escaped + "'"
+    return f"'{escaped}'"
 
 
 def strip_one_layer(text, char):
@@ -177,7 +177,7 @@ named_colors = {
     "brwhite": "ffffff",
 }
 
-bindings_blacklist = set(["self-insert", "'begin;end'"])
+bindings_blacklist = {"self-insert", "'begin;end'"}
 
 
 def parse_one_color(comp):
@@ -208,9 +208,7 @@ def better_color(c1, c2):
         return c1
     if c2 in named_colors:
         return c1
-    if c1 in named_colors:
-        return c2
-    return c1
+    return c2 if c1 in named_colors else c1
 
 
 def parse_color(color_str):
@@ -222,15 +220,15 @@ def parse_color(color_str):
     for comp in comps:
         # Remove quotes
         comp = comp.strip("'\" ")
-        if comp == "--bold" or comp == "-o":
+        if comp in ["--bold", "-o"]:
             bold = True
-        elif comp == "--underline" or comp == "-u":
+        elif comp in ["--underline", "-u"]:
             underline = True
-        elif comp == "--italics" or comp == "-i":
+        elif comp in ["--italics", "-i"]:
             italics = True
-        elif comp == "--dim" or comp == "-d":
+        elif comp in ["--dim", "-d"]:
             dim = True
-        elif comp == "--reverse" or comp == "-r":
+        elif comp in ["--reverse", "-r"]:
             reverse = True
         elif comp.startswith("--background"):
             # Background color
@@ -292,9 +290,7 @@ def parse_bool(val):
     val = val.lower()
     if val.startswith("f") or val.startswith("0"):
         return False
-    if val.startswith("t") or val.startswith("1"):
-        return True
-    return bool(val)
+    return True if val.startswith("t") or val.startswith("1") else bool(val)
 
 
 def html_color_for_ansi_color_index(val):
@@ -556,10 +552,7 @@ def html_color_for_ansi_color_index(val):
         "#e4e4e4",
         "#eeeeee",
     ]
-    if val < 0 or val >= len(arr):
-        return ""
-    else:
-        return arr[val]
+    return "" if val < 0 or val >= len(arr) else arr[val]
 
 
 # Function to return special ANSI escapes like exit_attribute_mode
@@ -621,20 +614,16 @@ def append_html_for_ansi_escape(full_val, result, span_open):
     if match is not None:
         close_span()
         # Just use the rgb values directly
-        html_color = "#%02x%02x%02x" % (
-            int(match.group(1)),
-            int(match.group(2)),
-            int(match.group(3)),
-        )
-        result.append('<span style="color: ' + html_color + '">')
+        html_color = ("#%02x%02x%02x" % (int(match[1]), int(match[2]), int(match[3])))
+        result.append(f'<span style="color: {html_color}">')
         return True  # span now open
 
     # term256 foreground color
     match = re.match(r"38;5;(\d+)", val)
     if match is not None:
         close_span()
-        html_color = html_color_for_ansi_color_index(int(match.group(1)))
-        result.append('<span style="color: ' + html_color + '">')
+        html_color = html_color_for_ansi_color_index(int(match[1]))
+        result.append(f'<span style="color: {html_color}">')
         return True  # span now open
 
     # term16 foreground color
@@ -643,7 +632,7 @@ def append_html_for_ansi_escape(full_val, result, span_open):
         html_color = html_color_for_ansi_color_index(
             int(val) - (30 if int(val) < 90 else 82)
         )
-        result.append('<span style="color: ' + html_color + '">')
+        result.append(f'<span style="color: {html_color}">')
         return True  # span now open
 
     # Try special escapes
@@ -671,7 +660,7 @@ def ansi_prompt_line_width(val):
     stripped_val = strip_ansi(val)
 
     # Now count the longest line
-    return max([len(x) for x in stripped_val.split("\n")])
+    return max(len(x) for x in stripped_val.split("\n"))
 
 
 def ansi_to_html(val):
@@ -959,28 +948,26 @@ class FishConfigHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         result = []
 
         # Make sure we return at least these
-        remaining = set(
-            [
-                "normal",
-                "error",
-                "command",
-                "end",
-                "param",
-                "comment",
-                "match",
-                "selection",
-                "search_match",
-                "operator",
-                "escape",
-                "quote",
-                "redirection",
-                "valid_path",
-                "autosuggestion",
-                "user",
-                "host",
-                "cancel",
-            ]
-        )
+        remaining = {
+            "normal",
+            "error",
+            "command",
+            "end",
+            "param",
+            "comment",
+            "match",
+            "selection",
+            "search_match",
+            "operator",
+            "escape",
+            "quote",
+            "redirection",
+            "valid_path",
+            "autosuggestion",
+            "user",
+            "host",
+            "cancel",
+        }
 
         # Here are our color descriptions
         descriptions = {
@@ -1020,26 +1007,29 @@ class FishConfigHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 continue
             # Lines starting with "#" can contain metadata.
             if line.startswith("#"):
-                if not ":" in line:
+                if ":" not in line:
                     continue
                 key, value = line.split(":", maxsplit=1)
                 key = key.strip("# '")
                 value = value.strip(" '\"")
                 # Only use keys we know
-                if not key in ("name", "preferred_background", "url"):
+                if key not in ("name", "preferred_background", "url"):
                     continue
-                if key == "preferred_background":
-                    if value not in named_colors and not value.startswith("#"):
-                        value = "#" + value
+                if (
+                    key == "preferred_background"
+                    and value not in named_colors
+                    and not value.startswith("#")
+                ):
+                    value = f"#{value}"
                 extrainfo[key] = value
 
             for match in re.finditer(r"^fish_(pager_)?color_(\S+) ?(.*)", line):
                 color_name, color_value = [x.strip() for x in match.group(2, 3)]
                 if match.group(1):
-                    color_name = "fish_pager_color_" + color_name
+                    color_name = f"fish_pager_color_{color_name}"
                 color_desc = descriptions.get(color_name, "")
                 data = {"name": color_name, "description": color_desc}
-                data.update(parse_color(color_value))
+                data |= parse_color(color_value)
                 result.append(data)
                 remaining.discard(color_name)
 
@@ -1059,10 +1049,7 @@ class FishConfigHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         out = out.strip()
 
         # Not sure why fish sometimes returns this with newlines
-        if "\n" in out:
-            return out.split("\n")
-        else:
-            return out.strip().split(", ")
+        return out.split("\n") if "\n" in out else out.strip().split(", ")
 
     def do_get_variable_names(self, cmd):
         "Given a command like 'set -U' return all the variable names"
@@ -1168,19 +1155,16 @@ class FishConfigHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     def do_get_color_for_variable(self, name):
         "Return the color with the given name, or the empty string if there is none."
-        out, err = run_fish_cmd("echo -n $" + name)
+        out, err = run_fish_cmd(f"echo -n ${name}")
         return out
 
     def do_set_color_for_variable(self, name, color):
         "Sets a color for a fish color name, like 'autosuggestion'"
         if not name:
             raise ValueError
-        if not color and not color == "":
-            color = "normal"
-        else:
-            color = unparse_color(color)
+        color = "normal" if not color and color != "" else unparse_color(color)
         if not name.startswith("fish_pager_color_"):
-            varname = "fish_color_" + name
+            varname = f"fish_color_{name}"
         # If the name already starts with "fish_", use it as the varname
         # This is needed for 'fish_pager_color' vars.
         if name.startswith("fish_"):
@@ -1194,22 +1178,19 @@ class FishConfigHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         if not re.match("^[a-zA-Z0-9_= -]*$", color):
             print("Refusing to use color value: ", color)
             return
-        command = "set -U " + varname
-        command += " " + color
+        command = f"set -U {varname}"
+        command += f" {color}"
 
         out, err = run_fish_cmd(command)
         return out
 
     def do_get_function(self, func_name):
-        out, err = run_fish_cmd("functions " + func_name + " | fish_indent --html")
+        out, err = run_fish_cmd(f"functions {func_name} | fish_indent --html")
         return out
 
     def do_delete_history_item(self, history_item_text):
         # It's really lame that we always return success here
-        cmd = (
-            "builtin history delete --case-sensitive --exact -- %s; builtin history save"
-            % escape_fish_cmd(history_item_text)
-        )
+        cmd = f"builtin history delete --case-sensitive --exact -- {escape_fish_cmd(history_item_text)}; builtin history save"
         out, err = run_fish_cmd(cmd)
         return True
 
@@ -1251,7 +1232,7 @@ class FishConfigHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             "right": right_demo_html,
         }
         if extras_dict:
-            result.update(extras_dict)
+            result |= extras_dict
         return result
 
     def do_get_current_prompt(self):
@@ -1260,11 +1241,10 @@ class FishConfigHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         prompt_func, err = run_fish_cmd(
             "functions fish_prompt; functions fish_right_prompt"
         )
-        result = self.do_get_prompt(
+        return self.do_get_prompt(
             prompt_func.strip(),
             {"name": "Current"},
         )
-        return result
 
     def do_get_sample_prompt(self, text, extras_dict):
         # Return the prompt you get from the given text. Extras_dict is a
@@ -1279,11 +1259,9 @@ class FishConfigHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         if line.isspace():
             return True
 
-        # Parse a comment hash like '# name: Classic'
-        match = re.match(r"#\s*(\w+?): (.+)", line, re.IGNORECASE)
-        if match:
-            key = match.group(1).strip()
-            value = match.group(2).strip()
+        if match := re.match(r"#\s*(\w+?): (.+)", line, re.IGNORECASE):
+            key = match[1].strip()
+            value = match[2].strip()
             result_dict[key] = value
             return True
         # Skip other hash comments
@@ -1309,8 +1287,7 @@ class FishConfigHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                     if not parsing_hashes:
                         function_lines.append(line)
                 func = "".join(function_lines).strip()
-                result = self.do_get_sample_prompt(func, extras_dict)
-                return result
+                return self.do_get_sample_prompt(func, extras_dict)
         except IOError:
             # Ignore unreadable files, etc.
             return None
@@ -1352,25 +1329,24 @@ class FishConfigHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         if width >= 70:
             font_size = "8pt"
         if width >= 60:
-            font_size = "10pt"
+            return "10pt"
         elif width >= 50:
-            font_size = "11pt"
+            return "11pt"
         elif width >= 40:
-            font_size = "13pt"
+            return "13pt"
         elif width >= 30:
-            font_size = "15pt"
+            return "15pt"
         elif width >= 25:
-            font_size = "16pt"
+            return "16pt"
         elif width >= 20:
-            font_size = "17pt"
+            return "17pt"
         else:
-            font_size = "18pt"
-        return font_size
+            return "18pt"
 
     def do_GET(self):
         p = self.path
 
-        authpath = "/" + authkey
+        authpath = f"/{authkey}"
         if self.secure_startswith(p, authpath):
             p = p[len(authpath) :]
         else:
@@ -1415,7 +1391,7 @@ class FishConfigHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         elif p == "/sample_prompts/":
             output = self.do_get_sample_prompts_list()
         elif re.match(r"/color/(\w+)/", p):
-            name = re.match(r"/color/(\w+)/", p).group(1)
+            name = re.match(r"/color/(\w+)/", p)[1]
             output = self.do_get_color_for_variable(name)
         elif p == "/bindings/":
             output = self.do_get_bindings()
@@ -1434,7 +1410,7 @@ class FishConfigHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     def do_POST(self):
         p = self.path
 
-        authpath = "/" + authkey
+        authpath = f"/{authkey}"
         if self.secure_startswith(p, authpath):
             p = p[len(authpath) :]
         else:
@@ -1471,43 +1447,41 @@ class FishConfigHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         if p == "/set_color/":
             print("# Colorscheme: " + postvars.get("theme"))
             have_colors = set()
-            known_colors = set(
-                (
-                    "fish_color_normal",
-                    "fish_color_command",
-                    "fish_color_keyword",
-                    "fish_color_quote",
-                    "fish_color_redirection",
-                    "fish_color_end",
-                    "fish_color_error",
-                    "fish_color_param",
-                    "fish_color_option",
-                    "fish_color_comment",
-                    "fish_color_selection",
-                    "fish_color_operator",
-                    "fish_color_escape",
-                    "fish_color_autosuggestion",
-                    "fish_color_cwd",
-                    "fish_color_user",
-                    "fish_color_host",
-                    "fish_color_host_remote",
-                    "fish_color_cancel",
-                    "fish_color_search_match",
-                    "fish_pager_color_progress",
-                    "fish_pager_color_background",
-                    "fish_pager_color_prefix",
-                    "fish_pager_color_completion",
-                    "fish_pager_color_description",
-                    "fish_pager_color_selected_background",
-                    "fish_pager_color_selected_prefix",
-                    "fish_pager_color_selected_completion",
-                    "fish_pager_color_selected_description",
-                    "fish_pager_color_secondary_background",
-                    "fish_pager_color_secondary_prefix",
-                    "fish_pager_color_secondary_completion",
-                    "fish_pager_color_secondary_description",
-                )
-            )
+            known_colors = {
+                "fish_color_normal",
+                "fish_color_command",
+                "fish_color_keyword",
+                "fish_color_quote",
+                "fish_color_redirection",
+                "fish_color_end",
+                "fish_color_error",
+                "fish_color_param",
+                "fish_color_option",
+                "fish_color_comment",
+                "fish_color_selection",
+                "fish_color_operator",
+                "fish_color_escape",
+                "fish_color_autosuggestion",
+                "fish_color_cwd",
+                "fish_color_user",
+                "fish_color_host",
+                "fish_color_host_remote",
+                "fish_color_cancel",
+                "fish_color_search_match",
+                "fish_pager_color_progress",
+                "fish_pager_color_background",
+                "fish_pager_color_prefix",
+                "fish_pager_color_completion",
+                "fish_pager_color_description",
+                "fish_pager_color_selected_background",
+                "fish_pager_color_selected_prefix",
+                "fish_pager_color_selected_completion",
+                "fish_pager_color_selected_description",
+                "fish_pager_color_secondary_background",
+                "fish_pager_color_secondary_prefix",
+                "fish_pager_color_secondary_completion",
+                "fish_pager_color_secondary_description",
+            }
             output=""
             for item in postvars.get("colors"):
                 what = item.get("what")
@@ -1517,7 +1491,7 @@ class FishConfigHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                     if not what.startswith("fish_pager_color_") and not what.startswith(
                         "fish_color_"
                     ):
-                        have_colors.add("fish_color_" + what)
+                        have_colors.add(f"fish_color_{what}")
                     else:
                         have_colors.add(what)
                     output = self.do_set_color_for_variable(what, color)
@@ -1568,18 +1542,6 @@ class FishConfigHTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         SimpleHTTPServer.SimpleHTTPRequestHandler.log_error(self, format, *args)
 
 
-redirect_template_html = """
-<!DOCTYPE html>
-<html>
- <head>
-  <meta http-equiv="refresh" content="0;URL='%s'" />
- </head>
- <body>
-  <p><a href="%s">Start the Fish Web config</a></p>
- </body>
-</html>
-"""
-
 # find fish
 fish_bin_dir = os.environ.get("__fish_bin_dir")
 fish_bin_path = None
@@ -1590,15 +1552,14 @@ if not fish_bin_dir:
         print("fish could not be found. Is fish installed correctly?")
         sys.exit(-1)
     else:
-        print("fish found at '%s'" % fish_bin_path)
+        print(f"fish found at '{fish_bin_path}'")
 
 else:
     fish_bin_path = os.path.join(fish_bin_dir, "fish")
 
 if not os.access(fish_bin_path, os.X_OK):
     print(
-        "fish could not be executed at path '%s'. "
-        "Is fish installed correctly?" % fish_bin_path
+        f"fish could not be executed at path '{fish_bin_path}'. Is fish installed correctly?"
     )
     sys.exit(-1)
 FISH_BIN_PATH = fish_bin_path
@@ -1634,7 +1595,7 @@ while PORT <= 9000:
             FishConfigTCPServer.address_family = socket.AF_INET
             continue
         if e.errno != errno.EADDRINUSE:
-            print(str(e))
+            print(e)
             sys.exit(-1)
     PORT += 1
 
@@ -1656,7 +1617,7 @@ if len(sys.argv) > 1:
         "bindings",
     ]:
         if tab.startswith(sys.argv[1]):
-            initial_tab = "#!/" + tab
+            initial_tab = f"#!/{tab}"
             break
 
 url = "http://localhost:%d/%s/%s" % (PORT, authkey, initial_tab)
@@ -1666,32 +1627,40 @@ url = "http://localhost:%d/%s/%s" % (PORT, authkey, initial_tab)
 # CVE-2014-2914 or https://github.com/fish-shell/fish-shell/issues/1438).
 f = tempfile.NamedTemporaryFile(prefix="web_config", suffix=".html", mode="w")
 
+redirect_template_html = """
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta http-equiv="refresh" content="0;URL='%s'" />
+ </head>
+ <body>
+  <p><a href="%s">Start the Fish Web config</a></p>
+ </body>
+</html>
+"""
 f.write(redirect_template_html % (url, url))
 f.flush()
 
 # Open temporary file as URL
 # Use open on macOS >= 10.12.5 to work around #4035.
-fileurl = "file://" + f.name
+fileurl = f"file://{f.name}"
 
 esc = get_special_ansi_escapes()
 print(
-    "Web config started at %s%s%s"
-    % (esc["underline"], fileurl, esc["exit_attribute_mode"])
+    f'Web config started at {esc["underline"]}{fileurl}{esc["exit_attribute_mode"]}'
 )
 print(
-    "If that doesn't work, try opening %s%s%s"
-    % (esc["underline"], url, esc["exit_attribute_mode"])
+    f"""If that doesn't work, try opening {esc["underline"]}{url}{esc["exit_attribute_mode"]}"""
 )
-print("%sHit ENTER to stop.%s" % (esc["bold"], esc["exit_attribute_mode"]))
+print(f'{esc["bold"]}Hit ENTER to stop.{esc["exit_attribute_mode"]}')
 
 
 def runThing():
     if isMacOS10_12_5_OrLater():
         subprocess.check_call(["open", fileurl])
     elif is_wsl():
-        cmd_path = find_executable("cmd.exe", COMMON_WSL_CMD_PATHS)
-        if cmd_path:
-            subprocess.call([cmd_path, "/c", "start %s" % url])
+        if cmd_path := find_executable("cmd.exe", COMMON_WSL_CMD_PATHS):
+            subprocess.call([cmd_path, "/c", f"start {url}"])
         else:
             print("Please add the directory containing cmd.exe to your $PATH")
             sys.exit(-1)
